@@ -1,10 +1,10 @@
 object Main: TMain
-  Left = 0
-  Top = 0
+  Left = 785
+  Top = 470
+  Width = 455
+  Height = 230
   BorderStyle = bsSizeToolWin
   Caption = 'Hooking IFileOpenDialog.Show Method'
-  ClientHeight = 196
-  ClientWidth = 447
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText

@@ -52,7 +52,7 @@ interface
 
 {$I Defs.inc}
 
-uses SysUtils;
+uses SysUtils, TypePatch;
 
 type
   PInt8 = ^Int8;
@@ -654,7 +654,9 @@ const
     { 81 } Decode_SP_T38_F0_F7,
     { 82 } Decode_66_ModRm_Ib,
     { 83 } Decode_F2_ModRm_Ib);
+{$IFDEF RegionExist}
 {$REGION 'COMMON'}
+{$ENDIF}
   { ========================== COMMON =============================== }
 
 procedure SetInstError(PInst: PInstruction; Error: Byte);
@@ -877,13 +879,24 @@ begin
   if PInst^.OpCode in [$70 .. $8F] then
     PInst^.OpType := otJ or otJcc;
   if Assigned(PInst^.VirtualAddr) then
+    {$IFDEF PointerMathExist}
     VA := PInst^.VirtualAddr + (PInst^.NextInst - PInst^.Addr)
+    {$ELSE}
+    with PInst^ do
+      VA := PByte(NativeUInt(VirtualAddr) +
+        (NativeUInt(NextInst) - NativeUInt(Addr)))
+    {$ENDIF}
   else
     VA := PInst^.NextInst;
   PInst^.Branch.Size := Size;
   PInst^.Branch.Falgs := bfUsed or bfRel;
   PInst^.Branch.Value := Value;
+  {$IFDEF PointerMathExist}
   PInst^.Branch.Target := VA + Value;
+  {$ELSE}
+  PInst^.Branch.Target :=
+    PByte(NativeUInt(VA) + NativeUInt(Value));
+  {$ENDIF}
 end;
 
 procedure Decode_Branch_ModRm(PInst: PInstruction);
@@ -897,7 +910,13 @@ begin
   PInst^.Branch.Size := PInst^.Disp.Size;
   PInst^.Branch.Falgs := bfUsed or bfIndirect or bfAbs;
   if Assigned(PInst^.VirtualAddr) then
+    {$IFDEF PointerMathExist}
     VA := PInst^.VirtualAddr + (PInst^.NextInst - PInst^.Addr)
+    {$ELSE}
+    with PInst^ do
+      VA := PByte(NativeUInt(VirtualAddr) +
+        (NativeUInt(NextInst) - NativeUInt(Addr)))
+    {$ENDIF}
   else
     VA := PInst^.NextInst;
   if (PInst^.ModRm.iMod = $00) and (PInst^.ModRm.Rm = $05) then
@@ -910,7 +929,11 @@ begin
         VA := PByte(UInt64(VA) and $FFFFFFFF);
       { Displacement = RIP + Offset }
       PInst^.Branch.Falgs := PInst^.Branch.Falgs or bfRip;
+      {$IFDEF PointerMathExist}          
       P := VA + Int32(PInst^.Disp.Value);
+      {$ELSE}
+      P := PByte(NativeUInt(VA) + NativeUInt(PInst^.Disp.Value));
+      {$ENDIF}
       { Memory 64-bits }
       PInst^.Branch.Target := PByte(PUInt64(P)^);
     end
@@ -975,8 +998,10 @@ begin
   Inc(PInst^.NextInst);
 end;
 
+{$IFDEF RegionExist}
 {$ENDREGION}
 {$REGION 'PREFIXES'}
+{$ENDIF}
 { ========================== PREFIXES =============================== }
 
 procedure Decode_ES_Prefix(PInst: PInstruction);
@@ -1185,8 +1210,10 @@ begin
   Inc(PInst^.NextInst);
   DecoderProcTable[OneByteTable[PInst^.NextInst^]](PInst);
 end;
+{$IFDEF RegionExist}
 {$ENDREGION}
 {$REGION 'ESCAPE'}
+{$ENDIF}
 { ========================== ESCAPE =============================== }
 
 procedure JumpError(PInst: PInstruction);
@@ -1238,8 +1265,10 @@ begin
     DecoderProcTable[ThreeByteTable3A[PInst^.NextInst^]](PInst);
 end;
 
+{$IFDEF RegionExist}
 {$ENDREGION}
 {$REGION 'FPU'}
+{$ENDIF}
 { ========================== FPU =============================== }
 
 procedure Decode_Escape_FPU_D8(PInst: PInstruction);
@@ -1419,8 +1448,10 @@ begin
   Decode_NA_ModRm(PInst);
 end;
 
+{$IFDEF RegionExist}
 {$ENDREGION}
 {$REGION 'GROUPS'}
+{$ENDIF}
 { ========================== GROUPS =============================== }
 
 procedure Decode_Group_1(PInst: PInstruction);
@@ -1796,8 +1827,10 @@ begin
   Decode_Invalid_Group(PInst);
 end;
 
+{$IFDEF RegionExist}
 {$ENDREGION}
 {$REGION 'DECODERS'}
+{$ENDIF}
 { ========================== DECODERS PROC =============================== }
 
 procedure Decode_NA_CALL_Ap_I64(PInst: PInstruction);
@@ -2341,8 +2374,10 @@ begin
   end;
   SetOpCode(PInst);
   Decode_Imm(PInst, PInst^.LID.vOpSize);
-end;
+end;      
+{$IFDEF RegionExist}
 {$ENDREGION}
+{$ENDIF}
 
 function DecodeInst(PInst: PInstruction): ShortInt;
 var
@@ -2388,7 +2423,11 @@ begin
   PInst^.OpTable := tbOneByte;
 
   DecoderProcTable[OneByteTable[P^]](PInst);
+  {$IFDEF PointerMathExist}
   Result := PInst^.NextInst - P;
+  {$ELSE}
+  Result := ShortInt(NativeUInt(PInst^.NextInst) - NativeUInt(P));
+  {$ENDIF}
   PInst^.InstSize := Result;
 
   if Result > CPUX_TO_INST_LENGTH[PInst^.Archi] then

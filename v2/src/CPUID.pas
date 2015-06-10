@@ -25,7 +25,7 @@ interface
 
 {$I Defs.inc}
 
-uses SysUtils;
+uses SysUtils, TypePatch;
 
 type
   { Do not change registers order ! }
@@ -224,7 +224,11 @@ begin
     Exit;
   Info := GetMemory(SizeOf(TCPUIDStruct));
   CallCPUID(0, Info^);
+  {$IFDEF PointerMathExist}
   P := PByte(Info) + 4; // Skip EAX !
+  {$ELSE}
+  P := PByte(NativeUInt(Pointer(Info)) + 4); // Skip EAX
+  {$ENDIF}
   Move(P^, PByte(@Result[0])^, 12);
   FreeMemory(Info);
 end;

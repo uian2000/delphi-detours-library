@@ -3,8 +3,15 @@ unit uMain;
 interface
 
 uses
+  {$IFDEF DX2UP}
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, DDetours;
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls,
+  {$ELSE !DX2UP}
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, StdCtrls,
+  {$ENDIF}
+  DDetours, StdCtrls,
+  Classes, Controls;
 
 type
   TMain = class(TForm)

@@ -27,16 +27,20 @@
   {$IF CompilerVersion >17}
     {$DEFINE CanInline}
   {$IFEND}
+  {$IF CompilerVersion >18}
+    {$DEFINE RegionExist }
+  {$IFEND}
   {$IF CompilerVersion >=20}
     {$DEFINE D2009UP }  
     {$DEFINE GenericsExist }
+    {$DEFINE PointerMathExist }
   {$IFEND}
   {$IF CompilerVersion >=23}
     {$DEFINE DXE2UP } 
   {$IFEND}  
   {$IF CompilerVersion >=24}
     {$DEFINE DXE3UP } 
-  {$IFEND}    
+  {$IFEND}   
 {$ENDIF !FPC}
 
 {$IF DEFINED(UseInline) and DEFINED(CanInline)}
@@ -46,3 +50,5 @@
 {$IF DEFINED(GenericsExist) and DEFINED(UseGenerics)}
   {$DEFINE MustUseGenerics}
 {$IFEND}
+
+
