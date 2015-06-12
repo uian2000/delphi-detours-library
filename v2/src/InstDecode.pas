@@ -52,7 +52,7 @@ interface
 
 {$I Defs.inc}
 
-uses SysUtils, TypePatch;
+uses SysUtils{$IFNDEF NewTypeExist}, TypePatch{$ENDIF};
 
 type
   PInt8 = ^Int8;

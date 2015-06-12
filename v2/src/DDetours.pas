@@ -180,7 +180,7 @@ uses
 {$IFDEF DXE2UP}
   WinApi.TLHelp32;
 {$ELSE !DXE2UP}
-  TLHelp32{$IFNDEF NewTypeExist}, TypePatch, SystemPatch{$ENDIF};
+  TLHelp32{$IFNDEF NewTypeExist}, TypePatch{$ENDIF};
 {$ENDIF DXE2UP}
 {$ELSE FPC}
 
@@ -634,6 +634,7 @@ begin
           begin
             Result := ops32bits; Exit;
           end;
+          {$ENDIF}
         end;
       end;
     end;
@@ -678,6 +679,7 @@ begin
   begin
     Result := n; Exit;
   end;
+  {$ENDIF}
   Result := ((Value + (n - 1)) and not(n - 1));
 end;
 

@@ -1,14 +1,12 @@
 program Demo1;
 
 uses
-//  Vcl.Forms,
   Forms,
   uMain in 'uMain.pas' {Main},
   CPUID in '..\..\..\..\src\CPUID.pas',
   DDetours in '..\..\..\..\src\DDetours.pas',
   InstDecode in '..\..\..\..\src\InstDecode.pas',
-  TypePatch in '..\..\..\..\src\TypePatch.pas',
-  SystemPatch in '..\..\..\..\src\SystemPatch.pas';
+  TypePatch in '..\..\..\..\src\TypePatch.pas';
 
 {$R *.res}
 
