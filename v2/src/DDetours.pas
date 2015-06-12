@@ -180,7 +180,7 @@ uses
 {$IFDEF DXE2UP}
   WinApi.TLHelp32;
 {$ELSE !DXE2UP}
-  TLHelp32;
+  TLHelp32{$IFNDEF NewTypeExist}, TypePatch, SystemPatch{$ENDIF};
 {$ENDIF DXE2UP}
 {$ELSE FPC}
 
@@ -333,10 +333,10 @@ type
 
   TThreadsIDList = class(TList);
 
-  TInterceptMonitor = class(TObject)
-    class constructor Create;
-    class destructor Destroy;
-    class var FLock: TObject;
+  TInterceptMonitor = class(TObject)                                 
+    {$IFDEF ClassConstructorExist}class var{$ENDIF} FLock: TObject;
+    {$IFDEF ClassConstructorExist}class{$ENDIF} constructor Create;
+    {$IFDEF ClassConstructorExist}class{$ENDIF} destructor Destroy;
     class procedure Enter;
     class procedure Leave;
   end;
@@ -544,9 +544,20 @@ begin
     if PInst^.Archi = CPUX32 then
     begin
       if PInst^.Prefixes and Prf_OpSize <> 0 then
-        Exit(ops16bits)
-      else
+//        Exit(ops16bits) else
+//        Exit(ops32bits);
+      {$IFDEF D2009UP}
+        Exit(ops16bits) else
         Exit(ops32bits);
+      {$ELSE}
+      begin
+        Result := ops16bits; Exit;
+      end else
+      begin
+        Result := ops32bits; Exit;
+      end;
+      {$ENDIF}
+      
     end
     else
     begin
@@ -558,14 +569,26 @@ begin
               PrfOpSize results in O16.
             }
             if PInst^.Prefixes and Prf_OpSize <> 0 then
-              Exit(ops16bits)
-            else
+//              Exit(ops16bits)
+//            else
+//              Exit(ops64bits);
+            {$IFDEF D2009UP}
+              Exit(ops16bits) else
               Exit(ops64bits);
+            {$ELSE}
+            begin
+              Result := ops16bits; Exit;
+            end else
+            begin
+              Result := ops64bits; Exit;
+            end;
+            {$ENDIF}
           end;
         opdF64, opdDv64:
           begin
             { The operand size is forced to a 64-bit operand size in PM64 ! }
-            Exit(ops64bits);
+            {$IFDEF D2009UP}Exit(ops64bits);{$ELSE}
+            Result := ops64bits; Exit;{$ENDIF}
           end;
         opdDf64:
           begin
@@ -575,18 +598,42 @@ begin
               PrfOpSize is ignored in EM64T.
             }
             if (CPUVendor = vAMD) and (PInst^.Prefixes and Prf_OpSize <> 0) then
-              Exit(ops16bits)
-            else
+//              Exit(ops16bits)
+//            else
+//              Exit(ops64bits);
+            {$IFDEF D2009UP}
+              Exit(ops16bits) else
               Exit(ops64bits);
+            {$ELSE}
+            begin
+              Result := ops16bits; Exit;
+            end else
+            begin
+              Result := ops64bits; Exit;
+            end;
+            {$ENDIF}
           end;
       else
         begin
           if PInst^.Rex.W then
+//            Exit(ops64bits)
+//          else if (PInst^.Prefixes and Prf_OpSize <> 0) then
+//            Exit(ops16bits)
+//          else
+//            Exit(ops32bits);
+          {$IFDEF D2009UP}
             Exit(ops64bits)
-          else if (PInst^.Prefixes and Prf_OpSize <> 0) then
-            Exit(ops16bits)
           else
-            Exit(ops32bits);
+          {$ELSE}
+          begin
+            Result := ops64bits; Exit;
+          end else if (PInst^.Prefixes and Prf_OpSize <> 0) then
+          begin
+            Result := ops16bits; Exit;
+          end else
+          begin
+            Result := ops32bits; Exit;
+          end;
         end;
       end;
     end;
@@ -625,7 +672,12 @@ end;
 function RoundMultipleOf(const Value, n: NativeUInt): NativeUInt; {$IFDEF MustInline}inline; {$ENDIF}
 begin
   if Value = 0 then
+  {$IFDEF D2009UP}
     Exit(n);
+  {$ELSE}
+  begin
+    Result := n; Exit;
+  end;
   Result := ((Value + (n - 1)) and not(n - 1));
 end;
 
@@ -655,14 +707,24 @@ begin
   pMax := SysInfo.lpMaximumApplicationAddress;
   dwAllocGran := SysInfo.dwAllocationGranularity;
 
+//  if (P < pMin) or (P > pMax) then
+  {$IFDEF PointerMathExist}
   if (P < pMin) or (P > pMax) then
+  {$ELSE}
+  if (NativeUInt(P) < NativeUInt(pMin)) or (NativeUInt(P) > NativeUInt(pMax)) then
+  {$ENDIF}
     Exit;
   if InternalFuncs.VirtualQuery(P, mbi, SizeOf(mbi)) = 0 then
     Exit;
 
   pBase := mbi.BaseAddress;
   Q := pBase;
+//  while Q < pMax do
+  {$IFDEF PointerMathExist}
   while Q < pMax do
+  {$ELSE}
+  while NativeInt(Q) < NativeInt(pMax) do
+  {$ENDIF}
   begin
     if InternalFuncs.VirtualQuery(Q, mbi, SizeOf(mbi)) = 0 then
       Exit;
@@ -681,7 +743,12 @@ begin
     try to allocate at the range [pMin - Addr]
   }
   Q := pBase;
+//  while Q > pMin do
+  {$IFDEF PointerMathExist}
   while Q > pMin do
+  {$ELSE}
+  while NativeInt(Q) > NativeInt(pMin) do
+  {$ENDIF}
   begin
     if InternalFuncs.VirtualQuery(Q, mbi, SizeOf(mbi)) = 0 then
       Exit;
@@ -809,7 +876,14 @@ begin
           the only way to insert a jump
           is to use tJmpRipZ method ! }
         if Offset32 <> Offset64 then
+//          Exit(-1);
+        {$IFDEF D2009UP}
           Exit(-1);
+        {$ELSE}
+        begin
+          Result := -1; Exit;
+        end;
+        {$ENDIF}
         PWord(Src)^ := opJmpMem;
         Inc(Src, 2);
         PInt32(Src)^ := Offset32;
@@ -847,18 +921,30 @@ end;
 
 function GetUInt64Size(const Value: UInt64): Byte;
 begin
+  {$IFDEF D2009UP}
   if UInt8(Value) = Value then
-    Exit(1)
+    Exit(1)      
   else if UInt16(Value) = Value then
     Exit(2)
   else if UInt32(Value) = Value then
     Exit(4)
   else
     Exit(8);
+  {$ELSE}
+  if UInt8(Value) = Value then
+    Result := 1
+  else if UInt16(Value) = Value then
+    Result := 2
+  else if UInt32(Value) = Value then
+    Result := 4
+  else
+    Result := 8;
+  {$ENDIF}
 end;
 
 function GetInt64Size(const Value: Int64): Byte;
 begin
+  {$IFDEF D2009UP}
   if Int8(Value) = Value then
     Exit(1)
   else if Int16(Value) = Value then
@@ -867,6 +953,16 @@ begin
     Exit(4)
   else
     Exit(8);
+  {$ELSE}
+  if Int8(Value) = Value then
+    Result := 1
+  else if Int16(Value) = Value then
+    Result := 2
+  else if Int32(Value) = Value then
+    Result := 4
+  else
+    Result := 8;
+  {$ENDIF}
 end;
 
 function GetJmpType(Src, Dst, DstSave: PByte): Byte;
@@ -1387,7 +1483,14 @@ begin
             Inc(PQ);
             PQ^ := 2;
             Inc(PQ);
+//            JmpType := GetJmpType(NewAddr + 4, PInst^.Branch.Target, NewAddr + 4 + 6);
+            {$IFDEF PointerMathExist}
             JmpType := GetJmpType(NewAddr + 4, PInst^.Branch.Target, NewAddr + 4 + 6);
+            {$ELSE}
+            JmpType :=
+              GetJmpType(PByte(NativeUInt(NewAddr) + 4), pInst^.Branch.Target,
+                PByte(NativeUInt(NewAddr) + 4 + 6));
+            {$ENDIF}
             JmpSize := JmpTypeToSize[JmpSize];
             if JmpType > tJmpRel32 then
               Inc(JmpSize, SizeOf(Pointer));
@@ -1398,7 +1501,12 @@ begin
             PQ^ := JmpSize;
             Inc(PQ);
 
+            {$IFDEF PointerMathExist}
             InsertJmp(NewAddr + 4, PInst^.Branch.Target, JmpType, NewAddr + 4 + 6);
+            {$ELSE}
+            InsertJmp(PByte(NativeUInt(NewAddr) + 4), PInst^.Branch.Target,
+              JmpType, PByte(NativeUInt(NewAddr) + 4 + 6));
+            {$ENDIF}
             Inc(PQ, JmpSize);
           end;
       end;
@@ -1406,7 +1514,12 @@ begin
   finally
     FreeMem(POpc);
   end;
+//  Result := PQ - NewAddr;
+  {$IFDEF PointerMathExist}
   Result := PQ - NewAddr;
+  {$ELSE}
+  Result := NativeInt(PQ) - NativeInt(NewAddr);
+  {$ENDIF}
   if Result = 00 then
   begin
     Move(PInst^.Addr^, NewAddr^, PInst^.InstSize);
@@ -1442,7 +1555,12 @@ begin
   if PInst^.AddrMode = am32 then
     P := PByte(UInt64(P) and $FFFFFFFF);
 
+//  P := P + Int64(PInst^.Disp.Value);
+  {$IFDEF PointerMathExist}
   P := P + Int64(PInst^.Disp.Value);
+  {$ELSE}
+  P := PByte(NativeUInt(P) + Int64(PInst^.Disp.Value));
+  {$ENDIF}
 
   Offset := Int64(UInt64(P) - UInt64(NewAddr) - PInst^.InstSize);
   if Int32(Offset) <> Offset then

@@ -4,7 +4,7 @@ interface
 
 {$I Defs.inc}
 
-{$IF CompilerVersion <= 18.5}
+{$IFNDEF NewTypeExist}
 type
   Int8 = ShortInt;
   UInt8 = Byte;
@@ -12,7 +12,8 @@ type
   UInt16 = Word;
   Int32 = LongInt;
   UInt32 = LongWord;
-{$IFEND}
+  PNativeUInt = ^NativeUInt;
+{$ENDIF}
 
 implementation
 

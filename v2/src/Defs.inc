@@ -29,11 +29,15 @@
   {$IFEND}
   {$IF CompilerVersion >18}
     {$DEFINE RegionExist }
+    {$IF CompilerVersion > 18.5}
+      {$DEFINE NewTypeExist }
+    {$IFEND}
   {$IFEND}
   {$IF CompilerVersion >=20}
     {$DEFINE D2009UP }  
     {$DEFINE GenericsExist }
     {$DEFINE PointerMathExist }
+    {$DEFINE ClassConstructorExist }
   {$IFEND}
   {$IF CompilerVersion >=23}
     {$DEFINE DXE2UP } 
